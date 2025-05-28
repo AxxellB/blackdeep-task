@@ -1,0 +1,21 @@
+{
+  "interests": [
+    {
+      "id": "sports",
+      "name": "Sports"
+    },
+    {
+      "id": "music",
+      "name": "Music"
+    },
+    {
+      "id": "dancing",
+      "name": "Dancing"
+    },
+    {
+      "id": "games",
+      "name": "Games"
+    }
+  ],
+  "registrations": []
+}
