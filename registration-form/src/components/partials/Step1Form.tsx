@@ -8,9 +8,11 @@ import {
   CheckboxGroup,
   Checkbox,
   Stack,
+  Box,
 } from "@chakra-ui/react";
 import { UseFormReturn, Controller } from "react-hook-form";
 import { z } from "zod";
+import { CombinedFormData } from "../RegisterForm";
 
 export const registrationFormSchema = z
   .object({
@@ -27,10 +29,8 @@ export const registrationFormSchema = z
     path: ["confirmPassword"],
   });
 
-export type RegistrationFormData = z.infer<typeof registrationFormSchema>;
-
 interface Step1FormProps {
-  form: UseFormReturn<RegistrationFormData, any>;
+  form: UseFormReturn<CombinedFormData, any>;
   interests: { id: string; name: string }[];
 }
 
@@ -48,9 +48,11 @@ const Step1Form: React.FC<Step1FormProps> = ({ form, interests }) => {
       <FormControl isInvalid={!!errors.names}>
         <FormLabel htmlFor="names">Names</FormLabel>
         <Input id="names" {...register("names")} size="md" />
-        <FormErrorMessage maxW={errorMessageMaxWidth}>
-          {errors.names?.message ?? ""}
-        </FormErrorMessage>
+        <Box maxW={errorMessageMaxWidth}>
+          <FormErrorMessage wordBreak="break-word">
+            {errors.names?.message ?? ""}
+          </FormErrorMessage>
+        </Box>
       </FormControl>
 
       <FormControl isInvalid={!!errors.password}>
@@ -61,9 +63,11 @@ const Step1Form: React.FC<Step1FormProps> = ({ form, interests }) => {
           {...register("password")}
           size="md"
         />
-        <FormErrorMessage maxW={errorMessageMaxWidth}>
-          {errors.password?.message ?? ""}
-        </FormErrorMessage>
+        <Box maxW={errorMessageMaxWidth}>
+          <FormErrorMessage wordBreak="break-word">
+            {errors.password?.message ?? ""}
+          </FormErrorMessage>
+        </Box>
       </FormControl>
 
       <FormControl isInvalid={!!errors.confirmPassword}>
@@ -74,9 +78,11 @@ const Step1Form: React.FC<Step1FormProps> = ({ form, interests }) => {
           {...register("confirmPassword")}
           size="md"
         />
-        <FormErrorMessage maxW={errorMessageMaxWidth}>
-          {errors.confirmPassword?.message ?? ""}
-        </FormErrorMessage>
+        <Box maxW={errorMessageMaxWidth}>
+          <FormErrorMessage wordBreak="break-word">
+            {errors.confirmPassword?.message ?? ""}
+          </FormErrorMessage>
+        </Box>
       </FormControl>
 
       <FormControl isInvalid={!!errors.interests}>
@@ -96,9 +102,11 @@ const Step1Form: React.FC<Step1FormProps> = ({ form, interests }) => {
             </CheckboxGroup>
           )}
         />
-        <FormErrorMessage maxW="120px">
-          {errors.interests?.message ?? ""}
-        </FormErrorMessage>
+        <Box maxW={errorMessageMaxWidth}>
+          <FormErrorMessage wordBreak="break-word">
+            {errors.interests?.message ?? ""}
+          </FormErrorMessage>
+        </Box>
       </FormControl>
     </VStack>
   );

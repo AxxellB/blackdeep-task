@@ -1,12 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { Box, Button, VStack, Heading, useToast } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  VStack,
+  Heading,
+  useToast,
+  Flex,
+  Text,
+  Progress,
+} from "@chakra-ui/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
-import Step1Form, {
-  registrationFormSchema,
-  RegistrationFormData,
-} from "./partials/Step1Form";
+import Step1Form from "./partials/Step1Form";
+import { registrationFormSchema } from "./partials/Step1Form";
+
+import Step2Form, { step2FormSchema } from "./partials/Step2Form";
+
+const combinedFormSchema = registrationFormSchema.and(step2FormSchema);
+
+export type CombinedFormData = z.infer<typeof combinedFormSchema>;
 
 interface Interest {
   id: string;
@@ -27,17 +41,39 @@ const fetchInterests = async (): Promise<Interest[]> => {
   }
 };
 
-const submitRegistration = async (data: RegistrationFormData) => {
+const submitRegistration = async (data: CombinedFormData) => {
+  let avatarBase64: string | null = null;
+
+  if (data.avatar && data.avatar.length > 0) {
+    const file = data.avatar[0];
+    try {
+      avatarBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    } catch (error) {
+      console.error("Error reading avatar file:", error);
+      avatarBase64 = null;
+    }
+  }
+
   try {
+    const payload = {
+      names: data.names,
+      password: data.password,
+      confirmPassword: data.confirmPassword,
+      interests: data.interests,
+      avatar: avatarBase64,
+    };
+
     const response = await fetch("http://localhost:3001/registrations", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        names: data.names,
-        interests: data.interests,
-      }),
+      body: JSON.stringify(payload),
     });
     if (!response.ok) {
       console.error(`Submission HTTP error! status: ${response.status}`);
@@ -53,21 +89,28 @@ const submitRegistration = async (data: RegistrationFormData) => {
 const RegistrationForm = () => {
   const toast = useToast();
   const [interests, setInterests] = useState<Interest[]>([]);
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 2;
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-  const formMethods = useForm<RegistrationFormData>({
-    resolver: zodResolver(registrationFormSchema),
+  const formMethods = useForm<CombinedFormData>({
+    resolver: zodResolver(combinedFormSchema),
     defaultValues: {
       names: "",
       password: "",
       confirmPassword: "",
       interests: [],
+      avatar: undefined,
     },
     mode: "onBlur",
+    reValidateMode: "onChange",
   });
 
   const {
     handleSubmit,
-    formState: { isSubmitting },
+    trigger,
+    formState: { isSubmitting, errors },
+    reset,
   } = formMethods;
 
   useEffect(() => {
@@ -78,7 +121,36 @@ const RegistrationForm = () => {
     loadInterests();
   }, []);
 
-  const onSubmit = async (data: RegistrationFormData) => {
+  const handleNext = async () => {
+    let fieldsToValidate: (keyof CombinedFormData)[] = [];
+
+    if (currentStep === 1) {
+      fieldsToValidate = ["names", "password", "confirmPassword", "interests"];
+    } else if (currentStep === 2) {
+      fieldsToValidate = ["avatar"];
+    }
+
+    const isStepValid = await trigger(fieldsToValidate, { shouldFocus: true });
+
+    if (isStepValid) {
+      setCurrentStep((prev) => prev + 1);
+    } else {
+      const firstErrorField = fieldsToValidate.find((field) => errors[field]);
+      if (firstErrorField) {
+        console.log(
+          `Validation failed for step ${currentStep}. First error on field:`,
+          firstErrorField,
+          errors[firstErrorField]?.message
+        );
+      }
+    }
+  };
+
+  const handleBack = () => {
+    setCurrentStep((prev) => prev - 1);
+  };
+
+  const onSubmit = async (data: CombinedFormData) => {
     try {
       await submitRegistration(data);
       toast({
@@ -88,7 +160,8 @@ const RegistrationForm = () => {
         duration: 3000,
         isClosable: true,
       });
-      formMethods.reset();
+      reset();
+      setCurrentStep(1);
     } catch (error) {
       toast({
         title: "Registration failed",
@@ -99,6 +172,25 @@ const RegistrationForm = () => {
       });
     }
   };
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return <Step1Form form={formMethods} interests={interests} />;
+      case 2:
+        return (
+          <Step2Form
+            form={formMethods}
+            avatarPreview={avatarPreview}
+            setAvatarPreview={setAvatarPreview}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  const progressValue = ((currentStep - 1) / (totalSteps - 1)) * 100;
 
   return (
     <Box
@@ -114,19 +206,60 @@ const RegistrationForm = () => {
       <Heading mb={6} textAlign="center" size="lg" color="teal.600">
         Register
       </Heading>
+
+      <VStack spacing={4} mb={6}>
+        <Flex width="full" justifyContent="space-between" alignItems="center">
+          <Text fontSize="sm" color="gray.600">
+            Step {currentStep} of {totalSteps}
+          </Text>
+          <Progress
+            value={progressValue}
+            width="full"
+            mx={2}
+            colorScheme="teal"
+            size="sm"
+            borderRadius="md"
+          />
+        </Flex>
+      </VStack>
+
       <form onSubmit={handleSubmit(onSubmit)}>
-        <Step1Form form={formMethods} interests={interests} />
+        {renderStep()}
 
         <VStack spacing={4} mt={6}>
-          <Button
-            type="submit"
-            colorScheme="teal"
-            width="full"
-            isLoading={isSubmitting}
-            size="lg"
-          >
-            Register
-          </Button>
+          {currentStep > 1 && (
+            <Button
+              onClick={handleBack}
+              isDisabled={isSubmitting}
+              width="full"
+              variant="outline"
+              colorScheme="teal"
+            >
+              Back
+            </Button>
+          )}
+
+          {currentStep < totalSteps && (
+            <Button
+              onClick={handleNext}
+              isDisabled={isSubmitting}
+              width="full"
+              colorScheme="teal"
+            >
+              Next
+            </Button>
+          )}
+
+          {currentStep === totalSteps && (
+            <Button
+              type="submit"
+              colorScheme="teal"
+              width="full"
+              isLoading={isSubmitting}
+            >
+              Register
+            </Button>
+          )}
         </VStack>
       </form>
     </Box>
