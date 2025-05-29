@@ -1,6 +1,4 @@
-# Getting Started with Create React App
-
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# This is a simple registration app built for Blacksheep Technology
 
 ## Available Scripts
 
@@ -18,6 +16,11 @@ You will also see any lint errors in the console.
 
 Launches the test runner in the interactive watch mode.\
 See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+
+### `npm run server`
+
+Starts the mock backend server. Make sure you run it in a different terminal than the one running `npm start` and make sure they are running simulationsly so the app can run
+properly.
 
 ### `npm run build`
 
